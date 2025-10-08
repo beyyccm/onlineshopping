@@ -1,39 +1,35 @@
-// Middlewares/MaintenanceMiddleware.cs
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
+
 
 namespace OnlineShopping.API.Middlewares
 {
     public class MaintenanceMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly bool _isMaintenance;
+        private readonly IConfiguration _config;
 
-        public MaintenanceMiddleware(RequestDelegate next, bool isMaintenance)
+
+        public MaintenanceMiddleware(RequestDelegate next, IConfiguration config)
         {
             _next = next;
-            _isMaintenance = isMaintenance;
+            _config = config;
         }
+
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (_isMaintenance)
+            var maintenance = _config.GetValue<bool>("MaintenanceMode");
+            if (maintenance)
             {
-                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                await context.Response.WriteAsync("Site is under maintenance. Please try again later.");
+                context.Response.StatusCode = 503;
+                await context.Response.WriteAsync("Site bakýmda. Daha sonra tekrar deneyin.");
+                return;
             }
-            else
-            {
-                await _next(context);
-            }
-        }
-    }
 
-    public static class MaintenanceMiddlewareExtensions
-    {
-        public static IApplicationBuilder UseMaintenance(this IApplicationBuilder builder, bool isMaintenance)
-        {
-            return builder.UseMiddleware<MaintenanceMiddleware>(isMaintenance);
+
+            await _next(context);
         }
     }
 }

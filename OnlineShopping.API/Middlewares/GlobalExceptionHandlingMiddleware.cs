@@ -1,19 +1,24 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Threading.Tasks;
+
 
 namespace OnlineShopping.API.Middlewares
 {
     public class GlobalExceptionHandlingMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
 
-        public GlobalExceptionHandlingMiddleware(RequestDelegate next)
+
+        public GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlingMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
         }
+
 
         public async Task InvokeAsync(HttpContext context)
         {
@@ -23,17 +28,10 @@ namespace OnlineShopping.API.Middlewares
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Unhandled exception");
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                await context.Response.WriteAsync($"Hata: {ex.Message}");
+                await context.Response.WriteAsJsonAsync(new { error = "Internal server error" });
             }
-        }
-    }
-
-    public static class GlobalExceptionHandlingMiddlewareExtensions
-    {
-        public static IApplicationBuilder UseGlobalExceptionHandling(this IApplicationBuilder builder)
-        {
-            return builder.UseMiddleware<GlobalExceptionHandlingMiddleware>();
         }
     }
 }

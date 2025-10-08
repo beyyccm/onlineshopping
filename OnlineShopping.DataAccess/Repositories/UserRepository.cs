@@ -13,7 +13,7 @@ namespace OnlineShopping.DataAccess.Repositories
 
         public async Task<User?> GetByUsernameAsync(string username)
         {
-            return await _dbSet.FirstOrDefaultAsync(u => u.Username == username);
+            return await _dbSet.FirstOrDefaultAsync(u => u.UserName == username);
         }
     }
 }

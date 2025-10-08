@@ -15,8 +15,9 @@ namespace OnlineShopping.DataAccess.Entities
         [Required, Range(0.01, double.MaxValue)]
         public decimal TotalAmount { get; set; }
 
+        // Use string to match IdentityUser.Id (string)
         [Required]
-        public int CustomerId { get; set; }
+        public string CustomerId { get; set; } = null!;
 
         [ForeignKey("CustomerId")]
         public User Customer { get; set; } = null!;

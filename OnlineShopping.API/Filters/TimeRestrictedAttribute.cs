@@ -1,28 +1,35 @@
-
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using System;
 
-public class TimeRestrictedAttribute : ActionFilterAttribute
+
+namespace OnlineShopping.API.Filters
 {
-    private readonly int _startHour;
-    private readonly int _endHour;
-
-    public TimeRestrictedAttribute(int startHour, int endHour)
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    public class TimeRestrictedAttribute : ActionFilterAttribute
     {
-        _startHour = startHour;
-        _endHour = endHour;
-    }
+        private readonly int _startHour;
+        private readonly int _endHour;
 
-    public override void OnActionExecuting(ActionExecutingContext context)
-    {
-        var hour = DateTime.Now.Hour;
-        if (hour < _startHour || hour > _endHour)
+
+        public TimeRestrictedAttribute(int startHour = 9, int endHour = 17)
         {
-            context.Result = new ContentResult
+            _startHour = startHour;
+            _endHour = endHour;
+        }
+
+
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            var hour = DateTime.Now.Hour;
+            if (hour < _startHour || hour > _endHour)
             {
-                Content = "This API is not available at this time.",
-                StatusCode = 403
-            };
+                context.Result = new ContentResult
+                {
+                    Content = "This API is not available at this time.",
+                    StatusCode = 403
+                };
+            }
         }
     }
 }

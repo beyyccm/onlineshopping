@@ -1,46 +1,58 @@
 using Microsoft.AspNetCore.Identity;
 using OnlineShopping.Business.Interfaces;
+using OnlineShopping.Common.DTOs;
 using OnlineShopping.DataAccess.Entities;
-using OnlineShopping.DataAccess.Interfaces;
 using System.Threading.Tasks;
 
 namespace OnlineShopping.Business.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly UserManager<User> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ITokenService _tokenService;
 
-        public UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher)
+        public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, ITokenService tokenService)
         {
-            _unitOfWork = unitOfWork;
-            _passwordHasher = passwordHasher;
+            _userManager = userManager;
+            _roleManager = roleManager;
+            _tokenService = tokenService;
         }
 
-        public async Task<bool> RegisterAsync(User user)
+        public async Task<bool> RegisterAsync(RegisterDto registerDto)
         {
-            if (string.IsNullOrWhiteSpace(user.Password))
-                throw new System.ArgumentException("Password is required for registration", nameof(user));
+            var user = new User
+            {
+                UserName = registerDto.Username,
+                Email = registerDto.Email,
+                FirstName = registerDto.Username,
+                LastName = registerDto.Username
+            };
 
-            user.PasswordHash = _passwordHasher.HashPassword(user, user.Password);
-            user.Password = null;
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
+            if (!result.Succeeded) return false;
 
-            await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.CompleteAsync();
+            var role = string.IsNullOrWhiteSpace(registerDto.Role) ? "Customer" : registerDto.Role;
+            if (!await _roleManager.RoleExistsAsync(role))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(role));
+            }
+
+            await _userManager.AddToRoleAsync(user, role);
             return true;
         }
 
-        public async Task<User?> LoginAsync(string username, string password)
+        public async Task<string?> LoginAsync(LoginDto loginDto)
         {
-            var user = await _unitOfWork.Users.GetByUsernameAsync(username);
+            var user = await _userManager.FindByNameAsync(loginDto.Username);
             if (user == null) return null;
 
-            var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
-            if (verification == PasswordVerificationResult.Success ||
-                verification == PasswordVerificationResult.SuccessRehashNeeded)
-                return user;
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, loginDto.Password);
+            if (!isPasswordValid) return null;
 
-            return null;
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = await _tokenService.GenerateTokenAsync(user, roles);
+            return token;
         }
     }
 }

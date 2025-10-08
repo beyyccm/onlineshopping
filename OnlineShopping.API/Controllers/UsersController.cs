@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OnlineShopping.Business.Interfaces;
-using OnlineShopping.DataAccess.Entities;
+using OnlineShopping.Common.DTOs;
 using System.Threading.Tasks;
 
 namespace OnlineShopping.API.Controllers
@@ -17,17 +17,19 @@ namespace OnlineShopping.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(User user)
+        public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
-            var result = await _userService.RegisterAsync(user);
-            return result ? Ok("User registered") : BadRequest();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _userService.RegisterAsync(model);
+            return result ? Ok("User registered") : BadRequest("Registration failed");
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] User login)
+        public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
-            var user = await _userService.LoginAsync(login.Username, login.Password);
-            return user != null ? Ok(user) : Unauthorized();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var token = await _userService.LoginAsync(model);
+            return token != null ? Ok(new { Token = token }) : Unauthorized();
         }
     }
 }
